@@ -9,7 +9,7 @@ variable "postgres_user" {
 variable "postgres_password" {
   description = "Mot de passe PostgreSQL"
   type        = string
-  default     = "NewSecurePass456!"
+  default     = "dom"
   sensitive   = true
 }
 
