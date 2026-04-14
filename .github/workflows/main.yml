@@ -1,0 +1,51 @@
+name: 'Terraform IaC Deployment'
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: 'Terraform Deploy'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 'Checkout Code'
+      uses: actions/checkout@v4
+
+    - name: 'Setup Terraform'
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.6.0"
+
+    - name: 'Setup Docker'
+      uses: docker/setup-buildx-action@v3
+
+    - name: 'Build Docker Image'
+      run: |
+        docker build -t tp-app:latest -f Dockerfile_app .
+
+    - name: 'Terraform Init'
+      run: terraform init
+
+    - name: 'Terraform Plan'
+      id: plan
+      run: terraform plan -out=tfplan
+      env:
+        TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
+
+    - name: 'Terraform Apply'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve tfplan
+      env:
+        TF_VAR_postgres_password: ${{ secrets.DB_PASSWORD }}
+
+    - name: 'Verify Deployment'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        docker ps
+        curl -s http://localhost:8080 | grep "Terraform IaC"
